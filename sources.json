@@ -1,0 +1,40 @@
+{
+    "sources": [
+        {
+            "name": "CNN",
+            "url": "http://cnn.com",
+            "weight": 1.0
+        },
+        {
+            "name": "Forbes",
+            "url": "http://forbes.com",
+            "weight": 1.0
+        },
+        {
+            "name": "USA Today",
+            "url": "http://usatoday.com",
+            "weight": 0.8
+        },
+        {
+            "name": "People",
+            "url": "http://people.com",
+            "weight": 1.0
+        },
+        {
+            "name": "MSN",
+            "url": "http://msn.com",
+            "weight": 1.0
+        },
+        {
+            "name": "New York Post",
+            "url": "http://nypost.com",
+            "weight": 0.8
+        },
+        {
+            "name": "Fox News",
+            "url": "http://foxnews.com",
+            "weight": 0.8
+        }
+
+    ]
+}
