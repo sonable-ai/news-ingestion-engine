@@ -125,7 +125,7 @@ if __name__=="__main__":
     t.start()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     AggregateService_pb2_grpc.add_AggregateServiceServicer_to_server(AggregateService(), server)
-    server.add_insecure_port('[::]:50051')
+    server.add_insecure_port('[::]:50052')
     server.start()
     logging.error("Started GRPC listener")
     server.wait_for_termination()

@@ -5,5 +5,6 @@ RUN apk add --no-cache gcc musl-dev linux-headers
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 EXPOSE 5001
+EXPOSE 50052
 COPY . .
 CMD ["python3", "service.py"]
