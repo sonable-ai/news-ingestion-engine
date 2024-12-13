@@ -18,6 +18,8 @@ import generated.AggregateService_pb2_grpc as AggregateService_pb2_grpc
 import threading
 import logging
 from newspaper.mthreading import fetch_news
+import nltk
+nltk.download("punkt_tab")
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -33,36 +35,30 @@ opensearch = OpenSearch(
 )
 
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
-    def RequestAggregate(self, request, context):
+    def requestAggregate(self, request, context):
         search_arr = []
-        for tag in request['tags']:
+        for tag in request.tags:
             search_arr.append({"index": "articles"})
-            search_arr.append({"query": {"match": {"text": tag}}})
+            search_arr.append({
+                "query": {
+                    "multi_match": {
+                        "query": tag,
+                        "fields": ["text", "title", "tags", "keywords"]
+                    }
+                }
+            })
         res = opensearch.msearch(body=search_arr)
-        logging.error(res)
-        arr = []
         for result in res['responses']:
-            for hit in result['hits']:
-                arr.append(AggregateMessages.ArticleData(
+            for hit in result['hits']['hits']:
+                logging.error(hit)
+                yield AggregateMessages.ArticleData(
                     id=0,
-                    source=AggregateMessages.DataSource(
-                        id=0,
-                        name="",
-                        baseUrl="",
-                    ),
                     url="",
-                    title=hit['title'],
-                    content=hit['text'],
-                    tags=[],
-                    processedText=hit['text'],
-                    date=BaseMessages.Date(
-                        year=0,
-                        month=0,
-                        day=0
-                    ),
-                    type=0
-                ))
-        return arr
+                    title=hit['_source']['title'],
+                    content=hit['_source']['text'],
+                    tags=hit['_source']['tags'],
+                    processedText=hit['_source']['text'],
+                )
 
 def store_article_data(articles):
     ret = opensearch.bulk(body=articles)
@@ -77,13 +73,39 @@ def store_article_data(articles):
 def query_articles():
     logging.error("Fetching articles...")
 
+    try:
+        ret = opensearch.indices.get("articles")
+        if not ret:
+            raise Exception("no response")
+    except:
+        opensearch.indices.create(index, body={
+            "settings": {
+                "index": {
+                    "number_of_shards": 2,
+                    "number_of_replicas": 1
+                }
+            },
+            "mappings": {
+                "properties": {
+                    "title": { "type": "text" },
+                    "text": { "type": "text" },
+                    "tags": { "type": "keyword" },
+                    "keywords": { "type": "keyword"},
+                    "date": { "type": "date" }
+                }
+            },
+            "aliases": {
+                "articles-alias": {}
+            }
+        })
+
     with open('sources.json', 'r') as file:
         data = json.load(file)
-        papers: newspaper.Source = []
+        papers = []
         logging.error("Building sources...")
         for source in data["sources"]:
             logging.error(source["name"])
-            papers.append(newspaper.build(source["url"]))
+            papers.append(newspaper.build(source["url"], max_keywords=30))
         logging.error("Fetching news -- this may take a while...")
         fetch_news(papers, threads=4)
         for paper in papers:
@@ -97,20 +119,30 @@ def query_articles():
                     article_data = []
                 try:
                     counter += 1
-                    article.download(recursion_counter=2)
-                    article.parse()
-                    time.sleep(3)
+                    article.nlp()
                 except Exception as e:
                     logging.error(e)
-                logging.error("Downloaded " + article.title)
-                article_data.append({"index": {"_index": index, "_id": hash(article.url)}}) # url as id
-                article_data.append({"text": article.text, "title": article.title, "tags": list(article.tags) if article.tags else []})
+                logging.error("Parsed " + article.title)
+
+                article_data.append({
+                    "index": {
+                        "_index": index, 
+                        "_id": hash(article.url) # url as id
+                    }
+                })
+                article_data.append({
+                    "text": article.text, 
+                    "title": article.title, 
+                    "tags": article.tags if article.tags else [], 
+                    "keywords": article.keywords if article.keywords else [],
+                    "date": article.publish_date 
+                })
         logging.error(f"Done. Inserting {len(article_data)} into OpenSearch...")
         if len(article_data) != 0:
             store_article_data(article_data)
 
 def start_crawler():
-    query_articles()
+    #query_articles()
     schedule.every().hour.do(query_articles)
     logging.error("Scheduled crawler daemon")
     while True:

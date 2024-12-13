@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 import Base_pb2 as Base__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17\x41ggregateMessages.proto\x12\tgenerated\x1a\nBase.proto\"7\n\nDataSource\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07\x62\x61seUrl\x18\x03 \x01(\t\"\x81\x02\n\x0b\x41rticleData\x12\n\n\x02id\x18\x01 \x01(\x05\x12%\n\x06source\x18\x02 \x01(\x0b\x32\x15.generated.DataSource\x12\x0b\n\x03url\x18\x03 \x01(\t\x12\r\n\x05title\x18\x04 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x05 \x01(\t\x12\x1c\n\x04tags\x18\x06 \x03(\x0b\x32\x0e.generated.Tag\x12\x1a\n\rprocessedText\x18\x07 \x01(\tH\x00\x88\x01\x01\x12\x1d\n\x04\x64\x61te\x18\x08 \x01(\x0b\x32\x0f.generated.Date\x12\'\n\x04type\x18\t \x01(\x0e\x32\x19.generated.DataSourceTypeB\x10\n\x0e_processedText\"\x96\x01\n\x10\x41ggregateRequest\x12\x0e\n\x06userId\x18\x01 \x01(\x05\x12\x1c\n\x04tags\x18\x02 \x03(\x0b\x32\x0e.generated.Tag\x12&\n\x07sources\x18\x03 \x03(\x0b\x32\x15.generated.DataSource\x12,\n\rignoreSources\x18\x04 \x03(\x0b\x32\x15.generated.DataSource*0\n\x0e\x44\x61taSourceType\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05VIDEO\x10\x01\x12\t\n\x05\x41UDIO\x10\x02\x42#Z!github.com/alyssakozma/sonable-aib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17\x41ggregateMessages.proto\x12\tgenerated\x1a\nBase.proto\"7\n\nDataSource\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07\x62\x61seUrl\x18\x03 \x01(\t\"\x82\x01\n\x0b\x41rticleData\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0b\n\x03url\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x0c\n\x04tags\x18\x05 \x03(\t\x12\x1a\n\rprocessedText\x18\x06 \x01(\tH\x00\x88\x01\x01\x42\x10\n\x0e_processedText\"0\n\x10\x41ggregateRequest\x12\x0e\n\x06userId\x18\x01 \x01(\x05\x12\x0c\n\x04tags\x18\x02 \x03(\t*0\n\x0e\x44\x61taSourceType\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05VIDEO\x10\x01\x12\t\n\x05\x41UDIO\x10\x02\x42#Z!github.com/alyssakozma/sonable-aib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,12 +22,12 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'AggregateMessages_pb2', _gl
 if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['DESCRIPTOR']._options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z!github.com/alyssakozma/sonable-ai'
-  _globals['_DATASOURCETYPE']._serialized_start=520
-  _globals['_DATASOURCETYPE']._serialized_end=568
+  _globals['_DATASOURCETYPE']._serialized_start=290
+  _globals['_DATASOURCETYPE']._serialized_end=338
   _globals['_DATASOURCE']._serialized_start=50
   _globals['_DATASOURCE']._serialized_end=105
   _globals['_ARTICLEDATA']._serialized_start=108
-  _globals['_ARTICLEDATA']._serialized_end=365
-  _globals['_AGGREGATEREQUEST']._serialized_start=368
-  _globals['_AGGREGATEREQUEST']._serialized_end=518
+  _globals['_ARTICLEDATA']._serialized_end=238
+  _globals['_AGGREGATEREQUEST']._serialized_start=240
+  _globals['_AGGREGATEREQUEST']._serialized_end=288
 # @@protoc_insertion_point(module_scope)
