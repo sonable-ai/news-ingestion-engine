@@ -23,7 +23,7 @@ class AggregateServiceStub(object):
                 '/generated.AggregateService/requestAggregate',
                 request_serializer=AggregateMessages__pb2.AggregateRequest.SerializeToString,
                 response_deserializer=AggregateMessages__pb2.ArticleData.FromString,
-                _registered_method=True)
+                )
 
 
 class AggregateServiceServicer(object):
@@ -54,7 +54,6 @@ def add_AggregateServiceServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'generated.AggregateService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('generated.AggregateService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -77,18 +76,8 @@ class AggregateService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/generated.AggregateService/requestAggregate',
+        return grpc.experimental.unary_stream(request, target, '/generated.AggregateService/requestAggregate',
             AggregateMessages__pb2.AggregateRequest.SerializeToString,
             AggregateMessages__pb2.ArticleData.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

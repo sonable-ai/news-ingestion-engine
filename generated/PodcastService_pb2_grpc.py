@@ -9,7 +9,7 @@ import PodcastMessages_pb2 as PodcastMessages__pb2
 class PodcastServiceStub(object):
     """
     Podcast Service handles and stores podcasts.
-    
+
     In order to generate a new podcast, it requests data from 
     the Aggregate service and sends it to the AI service. Then,
     Podcast service stores it + some metadata and returns to
@@ -26,48 +26,48 @@ class PodcastServiceStub(object):
                 '/generated.PodcastService/GetPodcastList',
                 request_serializer=PodcastMessages__pb2.ListPodcastsRequest.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.Podcast.FromString,
-                _registered_method=True)
+                )
         self.GetPodcastEpisodeList = channel.unary_stream(
                 '/generated.PodcastService/GetPodcastEpisodeList',
                 request_serializer=PodcastMessages__pb2.ListEpisodesRequest.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.PodcastEpisode.FromString,
-                _registered_method=True)
+                )
         self.StreamPodcast = channel.unary_stream(
                 '/generated.PodcastService/StreamPodcast',
                 request_serializer=PodcastMessages__pb2.StreamPodcastRequest.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.ByteData.FromString,
-                _registered_method=True)
+                )
         self.NewPodcast = channel.unary_unary(
                 '/generated.PodcastService/NewPodcast',
                 request_serializer=PodcastMessages__pb2.CreatePodcastRequest.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.Podcast.FromString,
-                _registered_method=True)
+                )
         self.NewEpisode = channel.unary_unary(
                 '/generated.PodcastService/NewEpisode',
                 request_serializer=PodcastMessages__pb2.CreateEpisodeRequest.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.PodcastEpisode.FromString,
-                _registered_method=True)
+                )
         self.EditPodcast = channel.unary_unary(
                 '/generated.PodcastService/EditPodcast',
                 request_serializer=PodcastMessages__pb2.Podcast.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.Podcast.FromString,
-                _registered_method=True)
+                )
         self.DeletePodcast = channel.unary_unary(
                 '/generated.PodcastService/DeletePodcast',
                 request_serializer=PodcastMessages__pb2.Podcast.SerializeToString,
                 response_deserializer=Base__pb2.Empty.FromString,
-                _registered_method=True)
+                )
         self.HealthCheck = channel.unary_unary(
                 '/generated.PodcastService/HealthCheck',
                 request_serializer=Base__pb2.Empty.SerializeToString,
                 response_deserializer=PodcastMessages__pb2.PodcastServiceHealthResponse.FromString,
-                _registered_method=True)
+                )
 
 
 class PodcastServiceServicer(object):
     """
     Podcast Service handles and stores podcasts.
-    
+
     In order to generate a new podcast, it requests data from 
     the Aggregate service and sends it to the AI service. Then,
     Podcast service stores it + some metadata and returns to
@@ -185,14 +185,13 @@ def add_PodcastServiceServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'generated.PodcastService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('generated.PodcastService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
 class PodcastService(object):
     """
     Podcast Service handles and stores podcasts.
-    
+
     In order to generate a new podcast, it requests data from 
     the Aggregate service and sends it to the AI service. Then,
     Podcast service stores it + some metadata and returns to
@@ -210,21 +209,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/generated.PodcastService/GetPodcastList',
+        return grpc.experimental.unary_stream(request, target, '/generated.PodcastService/GetPodcastList',
             PodcastMessages__pb2.ListPodcastsRequest.SerializeToString,
             PodcastMessages__pb2.Podcast.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetPodcastEpisodeList(request,
@@ -237,21 +226,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/generated.PodcastService/GetPodcastEpisodeList',
+        return grpc.experimental.unary_stream(request, target, '/generated.PodcastService/GetPodcastEpisodeList',
             PodcastMessages__pb2.ListEpisodesRequest.SerializeToString,
             PodcastMessages__pb2.PodcastEpisode.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def StreamPodcast(request,
@@ -264,21 +243,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(
-            request,
-            target,
-            '/generated.PodcastService/StreamPodcast',
+        return grpc.experimental.unary_stream(request, target, '/generated.PodcastService/StreamPodcast',
             PodcastMessages__pb2.StreamPodcastRequest.SerializeToString,
             PodcastMessages__pb2.ByteData.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def NewPodcast(request,
@@ -291,21 +260,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.PodcastService/NewPodcast',
+        return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/NewPodcast',
             PodcastMessages__pb2.CreatePodcastRequest.SerializeToString,
             PodcastMessages__pb2.Podcast.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def NewEpisode(request,
@@ -318,21 +277,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.PodcastService/NewEpisode',
+        return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/NewEpisode',
             PodcastMessages__pb2.CreateEpisodeRequest.SerializeToString,
             PodcastMessages__pb2.PodcastEpisode.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def EditPodcast(request,
@@ -345,21 +294,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.PodcastService/EditPodcast',
+        return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/EditPodcast',
             PodcastMessages__pb2.Podcast.SerializeToString,
             PodcastMessages__pb2.Podcast.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def DeletePodcast(request,
@@ -372,21 +311,11 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.PodcastService/DeletePodcast',
+        return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/DeletePodcast',
             PodcastMessages__pb2.Podcast.SerializeToString,
             Base__pb2.Empty.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def HealthCheck(request,
@@ -399,18 +328,8 @@ class PodcastService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.PodcastService/HealthCheck',
+        return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/HealthCheck',
             Base__pb2.Empty.SerializeToString,
             PodcastMessages__pb2.PodcastServiceHealthResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

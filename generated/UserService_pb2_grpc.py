@@ -21,17 +21,17 @@ class UserServiceStub(object):
                 '/generated.UserService/RegisterUser',
                 request_serializer=UserMessages__pb2.User.SerializeToString,
                 response_deserializer=UserMessages__pb2.User.FromString,
-                _registered_method=True)
+                )
         self.LoginUser = channel.unary_unary(
                 '/generated.UserService/LoginUser',
                 request_serializer=UserMessages__pb2.LoginRequest.SerializeToString,
                 response_deserializer=UserMessages__pb2.User.FromString,
-                _registered_method=True)
+                )
         self.LogoutUser = channel.unary_unary(
                 '/generated.UserService/LogoutUser',
                 request_serializer=UserMessages__pb2.LogoutRequest.SerializeToString,
                 response_deserializer=Base__pb2.Empty.FromString,
-                _registered_method=True)
+                )
 
 
 class UserServiceServicer(object):
@@ -79,7 +79,6 @@ def add_UserServiceServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'generated.UserService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('generated.UserService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -99,21 +98,11 @@ class UserService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.UserService/RegisterUser',
+        return grpc.experimental.unary_unary(request, target, '/generated.UserService/RegisterUser',
             UserMessages__pb2.User.SerializeToString,
             UserMessages__pb2.User.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def LoginUser(request,
@@ -126,21 +115,11 @@ class UserService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.UserService/LoginUser',
+        return grpc.experimental.unary_unary(request, target, '/generated.UserService/LoginUser',
             UserMessages__pb2.LoginRequest.SerializeToString,
             UserMessages__pb2.User.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def LogoutUser(request,
@@ -153,18 +132,8 @@ class UserService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/generated.UserService/LogoutUser',
+        return grpc.experimental.unary_unary(request, target, '/generated.UserService/LogoutUser',
             UserMessages__pb2.LogoutRequest.SerializeToString,
             Base__pb2.Empty.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
