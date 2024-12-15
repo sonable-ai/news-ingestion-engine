@@ -17,6 +17,7 @@ import generated.AggregateService_pb2 as AggregateService_pb2
 import generated.AggregateService_pb2_grpc as AggregateService_pb2_grpc
 import threading
 import logging
+import logging.config
 from newspaper.mthreading import fetch_news
 import nltk
 nltk.download("punkt_tab")
@@ -24,10 +25,11 @@ nltk.download("punkt_tab")
 from dotenv import load_dotenv
 load_dotenv()
 
+
 index = "articles"
 opensearchHost = "opensearch"
 opensearchPort = 9200
-opensearchAuth = ('admin', os.environ["OPENSEARCH_INITIAL_ADMIN_PASSWORD"])
+opensearchAuth = ('admin', os.getenv("OPENSEARCH_INITIAL_ADMIN_PASSWORD"))
 opensearch = OpenSearch(
     hosts = [{'host': opensearchHost, 'port': opensearchPort}],
     http_compress = True, # enables gzip compression for request bodies
@@ -49,7 +51,7 @@ class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
             })
         res = opensearch.msearch(body=search_arr)
         for result in res['responses']:
-            for hit in result['hits']['hits']:
+            for hit in result['hits']['hits']
                 logging.error(hit)
                 yield AggregateMessages.ArticleData(
                     id=0,
@@ -71,7 +73,7 @@ def store_article_data(articles):
 
 
 def query_articles():
-    logging.error("Fetching articles...")
+    logging.info("Fetching articles...")
 
     try:
         ret = opensearch.indices.get("articles")
@@ -102,19 +104,19 @@ def query_articles():
     with open('sources.json', 'r') as file:
         data = json.load(file)
         papers = []
-        logging.error("Building sources...")
+        logging.info("Building sources...")
         for source in data["sources"]:
-            logging.error(source["name"])
+            logging.info(source["name"])
             papers.append(newspaper.build(source["url"], max_keywords=30))
-        logging.error("Fetching news -- this may take a while...")
+        logging.info("Fetching news -- this may take a while...")
         fetch_news(papers, threads=4)
         for paper in papers:
-            logging.error(f"Parsing {len(paper.articles)} articles...")
+            logging.info(f"Parsing {len(paper.articles)} articles...")
             counter = 0
             article_data = []
             for article in paper.articles:
                 if counter % 10 == 0 and counter != 0:
-                    logging.error(f"{counter}/{len(paper.articles)}")
+                    logging.info(f"{counter}/{len(paper.articles)}")
                     store_article_data(article_data)
                     article_data = []
                 try:
@@ -122,7 +124,7 @@ def query_articles():
                     article.nlp()
                 except Exception as e:
                     logging.error(e)
-                logging.error("Parsed " + article.title)
+                logging.info("Parsed " + article.title)
 
                 article_data.append({
                     "index": {
@@ -142,24 +144,34 @@ def query_articles():
             store_article_data(article_data)
 
 def start_crawler():
-    #query_articles()
+    query_articles()
     schedule.every().hour.do(query_articles)
-    logging.error("Scheduled crawler daemon")
+    logging.info("Scheduled crawler daemon")
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 
 if __name__=="__main__":
-    logging.error("Waiting 60 seconds to start...")
-    time.sleep(30)
+    logging.basicConfig(
+        level=logging.DEBUG,  # Log everything for testing
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+        logging.FileHandler("info.log", mode="a"),  # Append mode
+        logging.StreamHandler(),  # Console logging
+        ],
+    )
+
+    logging.config.fileConfig("logging.conf")
+    logging.info("Waiting 60 seconds to start...")
+    time.sleep(90)
     t = threading.Thread(target=start_crawler, daemon=True)
     t.start()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     AggregateService_pb2_grpc.add_AggregateServiceServicer_to_server(AggregateService(), server)
     server.add_insecure_port('[::]:50052')
     server.start()
-    logging.error("Started GRPC listener")
+    logging.info("Started GRPC listener")
     server.wait_for_termination()
     while True:
         if not t.is_alive():
