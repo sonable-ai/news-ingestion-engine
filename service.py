@@ -51,7 +51,7 @@ class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
             })
         res = opensearch.msearch(body=search_arr)
         for result in res['responses']:
-            for hit in result['hits']['hits']
+            for hit in result['hits']['hits']:
                 logging.error(hit)
                 yield AggregateMessages.ArticleData(
                     id=0,
