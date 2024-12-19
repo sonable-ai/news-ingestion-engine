@@ -105,43 +105,44 @@ def query_articles():
         data = json.load(file)
         papers = []
         logging.info("Building sources...")
+        logging.info("Fetching news -- this may take a while...")
         for source in data["sources"]:
             logging.info(source["name"])
+            papers = []
             papers.append(newspaper.build(source["url"], max_keywords=30))
-        logging.info("Fetching news -- this may take a while...")
-        fetch_news(papers, threads=4)
-        for paper in papers:
-            logging.info(f"Parsing {len(paper.articles)} articles...")
-            counter = 0
-            article_data = []
-            for article in paper.articles:
-                if counter % 10 == 0 and counter != 0:
-                    logging.info(f"{counter}/{len(paper.articles)}")
-                    store_article_data(article_data)
-                    article_data = []
-                try:
-                    counter += 1
-                    article.nlp()
-                except Exception as e:
-                    logging.error(e)
-                logging.info("Parsed " + article.title)
+            fetch_news(papers, threads=4, )
+            for paper in papers:
+                logging.info(f"Parsing {len(paper.articles)} articles...")
+                counter = 0
+                article_data = []
+                for article in paper.articles:
+                    if counter % 10 == 0 and counter != 0:
+                        logging.info(f"{counter}/{len(paper.articles)}")
+                        store_article_data(article_data)
+                        article_data = []
+                    try:
+                        counter += 1
+                        article.nlp()
+                    except Exception as e:
+                        logging.error(e)
+                    logging.info("Parsed " + article.title)
 
-                article_data.append({
-                    "index": {
-                        "_index": index, 
-                        "_id": hash(article.url) # url as id
-                    }
-                })
-                article_data.append({
-                    "text": article.text, 
-                    "title": article.title, 
-                    "tags": article.tags if article.tags else [], 
-                    "keywords": article.keywords if article.keywords else [],
-                    "date": article.publish_date 
-                })
-        logging.error(f"Done. Inserting {len(article_data)} into OpenSearch...")
-        if len(article_data) != 0:
-            store_article_data(article_data)
+                    article_data.append({
+                        "index": {
+                            "_index": index, 
+                            "_id": hash(article.url) # url as id
+                        }
+                    })
+                    article_data.append({
+                        "text": article.text, 
+                        "title": article.title, 
+                        "tags": article.tags if article.tags else [], 
+                        "keywords": article.keywords if article.keywords else [],
+                        "date": article.publish_date 
+                    })
+            logging.error(f"Done. Inserting {len(article_data)} into OpenSearch...")
+            if len(article_data) != 0:
+                store_article_data(article_data)
 
 def start_crawler():
     query_articles()
