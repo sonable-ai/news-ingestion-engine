@@ -39,16 +39,18 @@ opensearch = OpenSearch(
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
         search_arr = []
+        search_arr.append({"index": "articles"})
+        query = ""
         for tag in request.tags:
-            search_arr.append({"index": "articles"})
-            search_arr.append({
-                "query": {
-                    "multi_match": {
-                        "query": tag,
-                        "fields": ["text", "title", "tags", "keywords"]
-                    }
+            query += tag + " "
+        search_arr.append({
+            "query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": ["text", "title", "tags", "keywords"]
                 }
-            })
+            }
+        })
         res = opensearch.msearch(body=search_arr)
         for result in res['responses']:
             for hit in result['hits']['hits']:
