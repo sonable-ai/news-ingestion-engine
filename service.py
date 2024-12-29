@@ -6,7 +6,7 @@ import schedule
 import uuid
 from opensearchpy import OpenSearch
 import os
-
+import hashlib
 import sys
 sys.path.append("./generated")
 
@@ -36,33 +36,112 @@ opensearch = OpenSearch(
     http_auth = opensearchAuth,
 )
 
+
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
-        search_arr = []
-        search_arr.append({"index": "articles"})
-        query = ""
-        for tag in request.tags:
-            query += tag + " "
-        search_arr.append({
-            "query": {
-                "multi_match": {
-                    "query": query,
-                    "fields": ["text", "title", "tags", "keywords"]
+        query = " ".join(request.tags)
+        cached_results = cache_query_results(query, opensearch)        
+        for result in cached_results:
+            yield AggregateMessages.ArticleData(
+                id=0,
+                url="",
+                title=result["title"],
+                content=result["content"],
+                tags=result["tags"],
+                processedText=result["content"],
+            )
+      
+
+
+def cache_query_results(query, opensearch, cache_index="articles_cache"):
+    """
+    Cache the results of the query_articles function in OpenSearch.
+    
+    Args:
+        query (str): The search query string.
+        opensearch (OpenSearch): OpenSearch client instance.
+        cache_index (str): The index name for caching. Default is 'articles_cache'.
+    
+    Returns:
+        list: List of cached or fetched article results.
+    """
+    # Create a unique hash for the query
+    query_hash = hashlib.sha256(query.encode()).hexdigest()
+    
+    # Ensure cache index exists
+    try:
+        if not opensearch.indices.exists(cache_index):
+            opensearch.indices.create(index=cache_index, body={
+                "settings": {
+                    "index": {
+                        "number_of_shards": 1,
+                        "number_of_replicas": 0
+                    }
+                },
+                "mappings": {
+                    "properties": {
+                        "query_hash": { "type": "keyword" },
+                        "results": { "type": "nested" }
+                    }
                 }
+            })
+    except Exception as e:
+        logging.error(f"Error creating cache index: {e}")
+        return []
+
+    # Check for cached results
+    try:
+        search_response = opensearch.search(index=cache_index, body={
+            "query": {
+                "term": {"query_hash": query_hash}
             }
         })
+        if search_response["hits"]["hits"]:
+            logging.info("Cache hit - returning cached results.")
+            return search_response["hits"]["hits"][0]["_source"]["results"]
+    except Exception as e:
+        logging.error(f"Error fetching from cache: {e}")
+
+    # If not cached, query the articles index
+    logging.info("Cache miss - querying articles index.")
+    search_arr = []
+    search_arr.append({"index": "articles"})
+    search_arr.append({
+        "query": {
+            "multi_match": {
+                "query": query,
+                "fields": ["text", "title", "tags", "keywords"]
+            }
+        }
+    })
+
+    try:
         res = opensearch.msearch(body=search_arr)
+        results = []
         for result in res['responses']:
             for hit in result['hits']['hits']:
-                logging.error(hit)
-                yield AggregateMessages.ArticleData(
-                    id=0,
-                    url="",
-                    title=hit['_source']['title'],
-                    content=hit['_source']['text'],
-                    tags=hit['_source']['tags'],
-                    processedText=hit['_source']['text'],
-                )
+                results.append({
+                    "title": hit['_source']['title'],
+                    "content": hit['_source']['text'],
+                    "tags": hit['_source']['tags'],
+                    "keywords": hit['_source']['keywords']
+                })
+
+        # Store results in cache
+        try:
+            opensearch.index(index=cache_index, id=query_hash, body={
+                "query_hash": query_hash,
+                "results": results
+            })
+            logging.info("Results cached successfully.")
+        except Exception as e:
+            logging.error(f"Error caching results: {e}")
+
+        return results
+    except Exception as e:
+        logging.error(f"Error querying articles index: {e}")
+        return []
+
 
 def store_article_data(articles):
     ret = opensearch.bulk(body=articles)
