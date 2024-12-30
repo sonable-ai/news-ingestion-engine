@@ -226,7 +226,7 @@ def query_articles():
                 store_article_data(article_data)
 
 def start_crawler():
-    query_articles()
+    #query_articles()
     schedule.every().hour.do(query_articles)
     logging.info("Scheduled crawler daemon")
     while True:
@@ -246,7 +246,7 @@ if __name__=="__main__":
 
     logging.config.fileConfig("logging.conf")
     logging.info("Waiting 60 seconds to start...")
-    time.sleep(90)
+    time.sleep(30)
     t = threading.Thread(target=start_crawler, daemon=True)
     t.start()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

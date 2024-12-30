@@ -40,12 +40,12 @@ class PodcastServiceStub(object):
         self.NewPodcast = channel.unary_unary(
                 '/generated.PodcastService/NewPodcast',
                 request_serializer=PodcastMessages__pb2.CreatePodcastRequest.SerializeToString,
-                response_deserializer=PodcastMessages__pb2.Podcast.FromString,
+                response_deserializer=Base__pb2.Empty.FromString,
                 )
         self.NewEpisode = channel.unary_unary(
                 '/generated.PodcastService/NewEpisode',
                 request_serializer=PodcastMessages__pb2.CreateEpisodeRequest.SerializeToString,
-                response_deserializer=PodcastMessages__pb2.PodcastEpisode.FromString,
+                response_deserializer=Base__pb2.Empty.FromString,
                 )
         self.EditPodcast = channel.unary_unary(
                 '/generated.PodcastService/EditPodcast',
@@ -159,12 +159,12 @@ def add_PodcastServiceServicer_to_server(servicer, server):
             'NewPodcast': grpc.unary_unary_rpc_method_handler(
                     servicer.NewPodcast,
                     request_deserializer=PodcastMessages__pb2.CreatePodcastRequest.FromString,
-                    response_serializer=PodcastMessages__pb2.Podcast.SerializeToString,
+                    response_serializer=Base__pb2.Empty.SerializeToString,
             ),
             'NewEpisode': grpc.unary_unary_rpc_method_handler(
                     servicer.NewEpisode,
                     request_deserializer=PodcastMessages__pb2.CreateEpisodeRequest.FromString,
-                    response_serializer=PodcastMessages__pb2.PodcastEpisode.SerializeToString,
+                    response_serializer=Base__pb2.Empty.SerializeToString,
             ),
             'EditPodcast': grpc.unary_unary_rpc_method_handler(
                     servicer.EditPodcast,
@@ -262,7 +262,7 @@ class PodcastService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/NewPodcast',
             PodcastMessages__pb2.CreatePodcastRequest.SerializeToString,
-            PodcastMessages__pb2.Podcast.FromString,
+            Base__pb2.Empty.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -279,7 +279,7 @@ class PodcastService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/generated.PodcastService/NewEpisode',
             PodcastMessages__pb2.CreateEpisodeRequest.SerializeToString,
-            PodcastMessages__pb2.PodcastEpisode.FromString,
+            Base__pb2.Empty.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
