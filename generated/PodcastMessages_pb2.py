@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 import Base_pb2 as Base__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15PodcastMessages.proto\x12\tgenerated\x1a\nBase.proto\"\x83\x01\n\x0bPodcastHost\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06gender\x18\x03 \x01(\t\x12!\n\tvoiceTags\x18\x04 \x03(\x0b\x32\x0e.generated.Tag\x12\'\n\x0fpersonalityTags\x18\x05 \x03(\x0b\x32\x0e.generated.Tag\"L\n\x0ePodcastEpisode\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\x0b\n\x03uri\x18\x03 \x01(\t\x12\x11\n\tpodcastId\x18\x04 \x01(\x05\"C\n\x07Podcast\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0e\n\x06topics\x18\x04 \x03(\t\"\x18\n\x08\x42yteData\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\")\n\x14StreamPodcastRequest\x12\x11\n\tepisodeId\x18\x01 \x01(\x05\"D\n\x14\x43reatePodcastRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06topics\x18\x03 \x03(\t\"9\n\x14\x43reateEpisodeRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\x12\x11\n\tpodcastId\x18\x02 \x01(\x05\"8\n\x13ListEpisodesRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\x12\x11\n\tpodcastId\x18\x02 \x01(\x05\"%\n\x13ListPodcastsRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\".\n\x1cPodcastServiceHealthResponse\x12\x0e\n\x06status\x18\x01 \x01(\x05\x42#Z!github.com/alyssakozma/sonable-aib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15PodcastMessages.proto\x12\tgenerated\x1a\nBase.proto\"\x83\x01\n\x0bPodcastHost\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06gender\x18\x03 \x01(\t\x12!\n\tvoiceTags\x18\x04 \x03(\x0b\x32\x0e.generated.Tag\x12\'\n\x0fpersonalityTags\x18\x05 \x03(\x0b\x32\x0e.generated.Tag\"Z\n\x0ePodcastEpisode\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\x0b\n\x03uri\x18\x03 \x01(\t\x12\x11\n\tpodcastId\x18\x04 \x01(\x05\x12\x0c\n\x04name\x18\x05 \x01(\t\"C\n\x07Podcast\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0e\n\x06topics\x18\x04 \x03(\t\"\x18\n\x08\x42yteData\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\")\n\x14StreamPodcastRequest\x12\x11\n\tepisodeId\x18\x01 \x01(\x05\"D\n\x14\x43reatePodcastRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06topics\x18\x03 \x03(\t\"9\n\x14\x43reateEpisodeRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\x12\x11\n\tpodcastId\x18\x02 \x01(\x05\"8\n\x13ListEpisodesRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\x12\x11\n\tpodcastId\x18\x02 \x01(\x05\"%\n\x13ListPodcastsRequest\x12\x0e\n\x06userId\x18\x01 \x01(\t\".\n\x1cPodcastServiceHealthResponse\x12\x0e\n\x06status\x18\x01 \x01(\x05\x42#Z!github.com/alyssakozma/sonable-aib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -25,21 +25,21 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_PODCASTHOST']._serialized_start=49
   _globals['_PODCASTHOST']._serialized_end=180
   _globals['_PODCASTEPISODE']._serialized_start=182
-  _globals['_PODCASTEPISODE']._serialized_end=258
-  _globals['_PODCAST']._serialized_start=260
-  _globals['_PODCAST']._serialized_end=327
-  _globals['_BYTEDATA']._serialized_start=329
-  _globals['_BYTEDATA']._serialized_end=353
-  _globals['_STREAMPODCASTREQUEST']._serialized_start=355
-  _globals['_STREAMPODCASTREQUEST']._serialized_end=396
-  _globals['_CREATEPODCASTREQUEST']._serialized_start=398
-  _globals['_CREATEPODCASTREQUEST']._serialized_end=466
-  _globals['_CREATEEPISODEREQUEST']._serialized_start=468
-  _globals['_CREATEEPISODEREQUEST']._serialized_end=525
-  _globals['_LISTEPISODESREQUEST']._serialized_start=527
-  _globals['_LISTEPISODESREQUEST']._serialized_end=583
-  _globals['_LISTPODCASTSREQUEST']._serialized_start=585
-  _globals['_LISTPODCASTSREQUEST']._serialized_end=622
-  _globals['_PODCASTSERVICEHEALTHRESPONSE']._serialized_start=624
-  _globals['_PODCASTSERVICEHEALTHRESPONSE']._serialized_end=670
+  _globals['_PODCASTEPISODE']._serialized_end=272
+  _globals['_PODCAST']._serialized_start=274
+  _globals['_PODCAST']._serialized_end=341
+  _globals['_BYTEDATA']._serialized_start=343
+  _globals['_BYTEDATA']._serialized_end=367
+  _globals['_STREAMPODCASTREQUEST']._serialized_start=369
+  _globals['_STREAMPODCASTREQUEST']._serialized_end=410
+  _globals['_CREATEPODCASTREQUEST']._serialized_start=412
+  _globals['_CREATEPODCASTREQUEST']._serialized_end=480
+  _globals['_CREATEEPISODEREQUEST']._serialized_start=482
+  _globals['_CREATEEPISODEREQUEST']._serialized_end=539
+  _globals['_LISTEPISODESREQUEST']._serialized_start=541
+  _globals['_LISTEPISODESREQUEST']._serialized_end=597
+  _globals['_LISTPODCASTSREQUEST']._serialized_start=599
+  _globals['_LISTPODCASTSREQUEST']._serialized_end=636
+  _globals['_PODCASTSERVICEHEALTHRESPONSE']._serialized_start=638
+  _globals['_PODCASTSERVICEHEALTHRESPONSE']._serialized_end=684
 # @@protoc_insertion_point(module_scope)
