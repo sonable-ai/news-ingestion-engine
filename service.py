@@ -8,6 +8,7 @@ from opensearchpy import OpenSearch
 import os
 import hashlib
 import sys
+
 sys.path.append("./generated")
 
 import grpc
@@ -19,12 +20,12 @@ import threading
 import logging
 import logging.config
 from newspaper.mthreading import fetch_news
+
 import nltk
 nltk.download("punkt_tab")
 
 from dotenv import load_dotenv
 load_dotenv()
-
 
 index = "articles"
 opensearchHost = "opensearch"
@@ -35,7 +36,6 @@ opensearch = OpenSearch(
     http_compress = True, # enables gzip compression for request bodies
     http_auth = opensearchAuth,
 )
-
 
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
@@ -50,8 +50,6 @@ class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
                 tags=result["tags"],
                 processedText=result["content"],
             )
-      
-
 
 def cache_query_results(query, opensearch, cache_index="articles_cache"):
     """
