@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 import AggregateMessages_pb2 as AggregateMessages__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10\x41IMessages.proto\x12\tgenerated\x1a\x17\x41ggregateMessages.proto\"Q\n\x16GenerateEpisodeRequest\x12\x11\n\tpodcastId\x18\x01 \x01(\x05\x12$\n\x04\x64\x61ta\x18\x02 \x03(\x0b\x32\x16.generated.ArticleDataB#Z!github.com/alyssakozma/sonable-aib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10\x41IMessages.proto\x12\tgenerated\x1a\x17\x41ggregateMessages.proto\"f\n\x16GenerateEpisodeRequest\x12\x11\n\tpodcastId\x18\x01 \x01(\x05\x12$\n\x04\x64\x61ta\x18\x02 \x03(\x0b\x32\x16.generated.ArticleData\x12\x13\n\x0bpodcastName\x18\x03 \x01(\tB#Z!github.com/alyssakozma/sonable-aib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -23,5 +23,5 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['DESCRIPTOR']._options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z!github.com/alyssakozma/sonable-ai'
   _globals['_GENERATEEPISODEREQUEST']._serialized_start=56
-  _globals['_GENERATEEPISODEREQUEST']._serialized_end=137
+  _globals['_GENERATEEPISODEREQUEST']._serialized_end=158
 # @@protoc_insertion_point(module_scope)
