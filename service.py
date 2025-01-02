@@ -1,4 +1,6 @@
 from concurrent import futures
+import datetime
+from datetime import timedelta
 import time
 import newspaper
 import json
@@ -8,7 +10,6 @@ from opensearchpy import OpenSearch
 import os
 import hashlib
 import sys
-
 sys.path.append("./generated")
 
 import grpc
@@ -20,12 +21,12 @@ import threading
 import logging
 import logging.config
 from newspaper.mthreading import fetch_news
-
 import nltk
 nltk.download("punkt_tab")
 
 from dotenv import load_dotenv
 load_dotenv()
+
 
 index = "articles"
 opensearchHost = "opensearch"
@@ -36,6 +37,29 @@ opensearch = OpenSearch(
     http_compress = True, # enables gzip compression for request bodies
     http_auth = opensearchAuth,
 )
+
+url_cache_index = "downloaded_article_urls"
+
+try:
+    if not opensearch.indices.exists(url_cache_index):
+        opensearch.indices.create(index=url_cache_index, body={
+            "settings": {
+                "index": {
+                    "number_of_shards": 1,
+                    "number_of_replicas": 0
+                }
+            },
+            "mappings": {
+                "properties": {
+                    "url_hash": { "type": "keyword" },
+                    "timestamp": { "type": "date" }
+                }
+            }
+        })
+except Exception as e:
+    logging.error(f"Error creating URL cache index: {e}")
+
+
 
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
@@ -50,23 +74,39 @@ class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
                 tags=result["tags"],
                 processedText=result["content"],
             )
+      
+def is_url_downloaded(article_url):
+   
+    url_hash = hashlib.sha256(article_url.encode()).hexdigest()
+    try:
+        search_response = opensearch.search(index=url_cache_index, body={
+            "query": {
+                "term": {"url_hash": url_hash}
+            }
+        })
+        if search_response["hits"]["hits"]:
+            return True
+    except Exception as e:
+        logging.error(f"Error checking URL in cache: {e}")
+    return False
+
+
+def cache_downloaded_url(article_url):
+
+    url_hash = hashlib.sha256(article_url.encode()).hexdigest()
+    try:
+        opensearch.index(index=url_cache_index, id=url_hash, body={
+            "url_hash": url_hash,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        logging.info(f"Cached article URL: {article_url}")
+    except Exception as e:
+        logging.error(f"Error caching article URL: {e}")
+
+
 
 def cache_query_results(query, opensearch, cache_index="articles_cache"):
-    """
-    Cache the results of the query_articles function in OpenSearch.
-    
-    Args:
-        query (str): The search query string.
-        opensearch (OpenSearch): OpenSearch client instance.
-        cache_index (str): The index name for caching. Default is 'articles_cache'.
-    
-    Returns:
-        list: List of cached or fetched article results.
-    """
-    # Create a unique hash for the query
-    query_hash = hashlib.sha256(query.encode()).hexdigest()
-    
-    # Ensure cache index exists
+    query_hash = hashlib.sha256(query.encode()).hexdigest()#hashes the query    
     try:
         if not opensearch.indices.exists(cache_index):
             opensearch.indices.create(index=cache_index, body={
@@ -79,6 +119,7 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
                 "mappings": {
                     "properties": {
                         "query_hash": { "type": "keyword" },
+                        "timestamp": { "type": "date" },
                         "results": { "type": "nested" }
                     }
                 }
@@ -95,12 +136,21 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
             }
         })
         if search_response["hits"]["hits"]:
-            logging.info("Cache hit - returning cached results.")
-            return search_response["hits"]["hits"][0]["_source"]["results"]
+            cached_entry = search_response["hits"]["hits"][0]["_source"]
+            cached_timestamp = datetime.fromisoformat(cached_entry["timestamp"])
+            current_time = datetime.utcnow()
+            if current_time - cached_timestamp < timedelta(hours=1):
+                logging.info("Cache hit - returning recent cached results.")
+                return cached_entry["results"]
+            else:
+                logging.info("Cache expired - querying articles index again.")
+        else:
+            logging.info("Cache miss - no cached entry found.")
+
     except Exception as e:
         logging.error(f"Error fetching from cache: {e}")
 
-    # If not cached, query the articles index
+    # If not cached, then query
     logging.info("Cache miss - querying articles index.")
     search_arr = []
     search_arr.append({"index": "articles"})
@@ -129,6 +179,7 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
         try:
             opensearch.index(index=cache_index, id=query_hash, body={
                 "query_hash": query_hash,
+                "timestamp": datetime.utcnow().isoformat(),
                 "results": results
             })
             logging.info("Results cached successfully.")
@@ -195,6 +246,9 @@ def query_articles():
                 counter = 0
                 article_data = []
                 for article in paper.articles:
+                    if is_url_downloaded(article.url):
+                        logging.info(f"Skipping already downloaded article: {article.url}")
+                        continue
                     if counter % 10 == 0 and counter != 0:
                         logging.info(f"{counter}/{len(paper.articles)}")
                         store_article_data(article_data)
@@ -202,6 +256,7 @@ def query_articles():
                     try:
                         counter += 1
                         article.nlp()
+                        cache_downloaded_url(article.url)
                     except Exception as e:
                         logging.error(e)
                     logging.info("Parsed " + article.title)
@@ -224,7 +279,7 @@ def query_articles():
                 store_article_data(article_data)
 
 def start_crawler():
-    #query_articles()
+    query_articles()
     schedule.every().hour.do(query_articles)
     logging.info("Scheduled crawler daemon")
     while True:
@@ -244,7 +299,7 @@ if __name__=="__main__":
 
     logging.config.fileConfig("logging.conf")
     logging.info("Waiting 60 seconds to start...")
-    time.sleep(30)
+    time.sleep(90)
     t = threading.Thread(target=start_crawler, daemon=True)
     t.start()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
