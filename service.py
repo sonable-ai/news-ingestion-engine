@@ -31,11 +31,8 @@ index = "articles"
 opensearchHost = "opensearch"
 opensearchPort = 9200
 opensearchAuth = ('admin', os.getenv("OPENSEARCH_INITIAL_ADMIN_PASSWORD"))
-opensearch = OpenSearch(
-    hosts = [{'host': opensearchHost, 'port': opensearchPort}],
-    http_compress = True, # enables gzip compression for request bodies
-    http_auth = opensearchAuth,
-)
+
+opensearch = None
 
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
@@ -50,6 +47,16 @@ class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
                 tags=result["tags"],
                 processedText=result["content"],
             )
+
+def init_opensearch():
+    global opensearch
+    if opensearch is None:
+        opensearch = OpenSearch(
+            hosts = [{'host': opensearchHost, 'port': opensearchPort}],
+            http_compress = True, # enables gzip compression for request bodies
+            http_auth = opensearchAuth,
+        )
+    return opensearch
 
 def cache_query_results(query, opensearch, cache_index="articles_cache"):
     """
@@ -243,8 +250,18 @@ if __name__=="__main__":
     )
 
     logging.config.fileConfig("logging.conf")
-    logging.info("Waiting 60 seconds to start...")
-    time.sleep(30)
+
+    logging.info("Initializing OpenSearch connection...")
+
+    opensearchInit = False
+    while opensearchInit is not True:
+        try:
+            init_opensearch()
+            opensearchInit = True
+        except:
+            logging.error("Failed to connect to OpenSearch. Retrying in 10 seconds...")
+            time.sleep(10)
+
     t = threading.Thread(target=start_crawler, daemon=True)
     t.start()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
