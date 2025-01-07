@@ -1,6 +1,26 @@
 {
     "sources": [
         {
+            "name": "CNN",
+            "url": "http://cnn.com/",
+            "weight": 1.0
+        },
+        {
+            "name": "Metal Injection",
+            "url": "http://metalinjection.net/",
+            "weight": 1.0
+        },
+        {
+            "name": "Rolling Stone",
+            "url": "http://rollingstone.com/",
+            "weight": 1.0
+        },
+        {
+            "name": "NME",
+            "url": "http://nme.com/",
+            "weight": 1.0
+        },
+        {
             "name": "Forbes",
             "url": "http://forbes.com",
             "weight": 1.0

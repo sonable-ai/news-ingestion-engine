@@ -138,29 +138,24 @@ def init_opensearch():
     
     deploy_model(model_id)
 
-    try: 
-        res = opensearch.ingest.get_pipeline(id="articles-pipeline")
-        logging.info(res)
-    except:
-        logging.info("No existing pipeline found")
-        logging.info("Creating Ingest pipeline...")
-        opensearch.ingest.put_pipeline(
-            id="articles-pipeline",
-            body={
-                "description": "An NLP ingest pipeline",
-                "processors": [
-                    {
-                        "text_embedding": {
-                            "model_id": model_id,
-                            "field_map": {
-                                "content": "content_embedding",
-                                "title": "title_embedding",
-                            }
+    logging.info("Creating or updating ingestion pipeline...")
+    opensearch.ingest.put_pipeline(
+        id="articles-pipeline",
+        body={
+            "description": "An NLP ingest pipeline",
+            "processors": [
+                {
+                    "text_embedding": {
+                        "model_id": model_id,
+                        "field_map": {
+                            "content": "content_embedding",
+                            "title": "title_embedding",
                         }
                     }
-                ]
-            }
-        )
+                }
+            ]
+        }
+    )
 
     try:
         res = opensearch.indices.get(index)
@@ -172,7 +167,7 @@ def init_opensearch():
                 "index": {
                     "knn": True,
                     "number_of_shards": 2,
-                    "number_of_replicas": 1
+                    "number_of_replicas": 1,
                 },
                 "default_pipeline": "articles-pipeline"
             },
@@ -277,8 +272,19 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
                     "content_embedding": {
                         "query_text": query,
                         "model_id": model_id,
-                        "k": 5
-                    }
+                        "k": 5,
+                        "filter": {
+                            "bool": {
+                                "must": [
+                                    {
+                                        "match": {
+                                            "lang": "en"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
                 }
             }
         },
@@ -287,14 +293,13 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
         })
         results = []
         logging.info("RESULT " + json.dumps(res))
-        for result in res['responses']:
-            for hit in result['hits']['hits']:
-                results.append({
-                    "title": hit['_source']['title'],
-                    "content": hit['_source']['text'],
-                    "tags": hit['_source']['tags'],
-                    "keywords": hit['_source']['keywords']
-                })
+        for hit in res['hits']['hits']:
+            results.append({
+                "title": hit['_source']['title'],
+                "content": hit['_source']['content'],
+                "tags": hit['_source']['tags'],
+                "keywords": hit['_source']['keywords'],
+            })
 
         # Store results in cache
         try:
@@ -336,7 +341,7 @@ def query_articles():
         for source in data["sources"]:
             logging.info(source["name"])
             papers = []
-            papers.append(newspaper.build(source["url"], max_keywords=30, fetch_images=False, language="en"))
+            papers.append(newspaper.build(source["url"], max_keywords=30, fetch_images=False))
             fetch_news(papers, threads=4, )
             for paper in papers:
                 logging.info(f"Parsing {len(paper.articles)} articles...")
@@ -361,18 +366,19 @@ def query_articles():
                         }
                     })
                     article_data.append({
-                        "text": article.text, 
+                        "content": article.text, 
                         "title": article.title, 
                         "tags": article.tags if article.tags else [], 
                         "keywords": article.keywords if article.keywords else [],
-                        "date": article.publish_date 
+                        "date": article.publish_date,
+                        "lang": article.meta_lang 
                     })
             logging.error(f"Done. Inserting {len(article_data)} into OpenSearch...")
             if len(article_data) != 0:
                 store_article_data(article_data)
 
 def start_crawler():
-    #query_articles()
+    query_articles()
     schedule.every().hour.do(query_articles)
     logging.info("Scheduled crawler daemon")
     while True:
