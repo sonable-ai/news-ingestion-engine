@@ -33,6 +33,8 @@ opensearchAuth = ('admin', os.getenv("OPENSEARCH_INITIAL_ADMIN_PASSWORD"))
 
 opensearch = None
 
+model_id = ""
+
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
         query = " ".join(request.tags)
@@ -53,13 +55,16 @@ def deploy_model(model_id):
         model_deploy_result = opensearch.plugins.ml.deploy_model(model_id)
         model_deploy_status = model_deploy_result["status"]
         model_deploy_task_id = model_deploy_result["task_id"]
-        while model_deploy_status != "COMPLETED":
+        logging.error(json.dumps(model_deploy_result))
+        while model_deploy_status != "COMPLETED" and model_deploy_status != "FAILED":
             res = opensearch.plugins.ml.get_task(model_deploy_task_id)
+            logging.error(json.dumps(res))
             model_deploy_status = res["state"]
     except Exception as e:
         logging.info(e)
 
 def init_opensearch_model():
+    global model_id
     model_id = ""
     
     logging.info("Preparing ML settings for OpenSearch...")
@@ -112,6 +117,7 @@ def init_opensearch_model():
 def init_opensearch():
     logging.info("Initializing OpenSearch...")
     global opensearch
+    global model_id
     if opensearch is None:
         opensearch = OpenSearch(
             hosts = [{'host': opensearchHost, 'port': opensearchPort}],
@@ -119,7 +125,6 @@ def init_opensearch():
             http_auth = opensearchAuth,
         )
     
-    model_id = ""
 
     try:
         with open('model.info', 'r') as f:
@@ -133,71 +138,78 @@ def init_opensearch():
     
     deploy_model(model_id)
 
-    res = opensearch.ingest.get_pipeline(id="articles-pipeline")
-    logging.info(res)
-    logging.info("Creating Ingest pipeline...")
-    opensearch.ingest.put_pipeline(
-        id="articles-pipeline",
-        body={
-            "description": "An NLP ingest pipeline",
-            "processors": [
-                {
-                    "text_embedding": {
-                        "model_id": model_id,
-                        "field_map": {
-                            "content": "content_embedding",
-                            "title": "title_embedding",
+    try: 
+        res = opensearch.ingest.get_pipeline(id="articles-pipeline")
+        logging.info(res)
+    except:
+        logging.info("No existing pipeline found")
+        logging.info("Creating Ingest pipeline...")
+        opensearch.ingest.put_pipeline(
+            id="articles-pipeline",
+            body={
+                "description": "An NLP ingest pipeline",
+                "processors": [
+                    {
+                        "text_embedding": {
+                            "model_id": model_id,
+                            "field_map": {
+                                "content": "content_embedding",
+                                "title": "title_embedding",
+                            }
                         }
                     }
-                }
-            ]
-        }
-    )
-
-    logging.info("Creating articles index...")
-    opensearch.indices.create(index, body={
-        "settings": {
-            "index": {
-                "knn": True,
-                "number_of_shards": 2,
-                "number_of_replicas": 1
-            },
-            "default_pipeline": "articles-pipeline"
-        },
-        "mappings": {
-            "properties": {
-                "content": { "type": "text" },
-                "title": { "type": "text" },
-                "tags": { "type": "keyword" },
-                "keywords": { "type": "keyword"},
-                "date": { "type": "date" },
-
-                "content_embedding": {
-                    "type": "knn_vector",
-                    "dimension": 768,
-                    "method": {
-                        "engine": "lucene",
-                        "space_type": "l2",
-                        "name": "hnsw",
-                        "parameters": {}
-                    }
-                },
-                "title_embedding": {
-                    "type": "knn_vector",
-                    "dimension": 768,
-                    "method": {
-                        "engine": "lucene",
-                        "space_type": "l2",
-                        "name": "hnsw",
-                        "parameters": {}
-                    }
-                },
+                ]
             }
-        },
-        "aliases": {
-            "articles-alias": {}
-        }
-    })
+        )
+
+    try:
+        res = opensearch.indices.get(index)
+        logging.info(res)
+    except:
+        logging.info("Creating articles index...")
+        opensearch.indices.create(index, body={
+            "settings": {
+                "index": {
+                    "knn": True,
+                    "number_of_shards": 2,
+                    "number_of_replicas": 1
+                },
+                "default_pipeline": "articles-pipeline"
+            },
+            "mappings": {
+                "properties": {
+                    "content": { "type": "text" },
+                    "title": { "type": "text" },
+                    "tags": { "type": "keyword" },
+                    "keywords": { "type": "keyword"},
+                    "date": { "type": "date" },
+
+                    "content_embedding": {
+                        "type": "knn_vector",
+                        "dimension": 768,
+                        "method": {
+                            "engine": "lucene",
+                            "space_type": "l2",
+                            "name": "hnsw",
+                            "parameters": {}
+                        }
+                    },
+                    "title_embedding": {
+                        "type": "knn_vector",
+                        "dimension": 768,
+                        "method": {
+                            "engine": "lucene",
+                            "space_type": "l2",
+                            "name": "hnsw",
+                            "parameters": {}
+                        }
+                    },
+                }
+            },
+            "aliases": {
+                "articles-alias": {}
+            }
+        })
     logging.info("Done!")
     return opensearch
 
@@ -252,20 +264,29 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
 
     # If not cached, query the articles index
     logging.info("Cache miss - querying articles index.")
+    global model_id
     search_arr = []
     search_arr.append({"index": index})
     search_arr.append({
-        "query": {
-            "multi_match": {
-                "query": query,
-                "fields": ["text", "title", "tags", "keywords"]
-            }
-        }
     })
 
     try:
-        res = opensearch.msearch(body=search_arr)
+        res = opensearch.search(index=index, body={
+            "query": {
+                "neural": {
+                    "content_embedding": {
+                        "query_text": query,
+                        "model_id": model_id,
+                        "k": 5
+                    }
+                }
+            }
+        },
+        params = {
+            "timeout": 40
+        })
         results = []
+        logging.info("RESULT " + json.dumps(res))
         for result in res['responses']:
             for hit in result['hits']['hits']:
                 results.append({
