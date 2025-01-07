@@ -1,11 +1,6 @@
 {
     "sources": [
         {
-            "name": "CNN",
-            "url": "http://cnn.com",
-            "weight": 1.0
-        },
-        {
             "name": "Forbes",
             "url": "http://forbes.com",
             "weight": 1.0
