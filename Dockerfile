@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM python:3.11-alpine
 WORKDIR /src
-RUN apk add --no-cache gcc musl-dev linux-headers build-base
+RUN apk add --no-cache gcc musl-dev linux-headers build-base git curl
 RUN mkdir -p /src/logs && chmod -R 777 /src/logs
 COPY requirements.txt /src/requirements.txt
 RUN pip install -r requirements.txt
