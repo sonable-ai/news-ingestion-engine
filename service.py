@@ -2,6 +2,7 @@ from concurrent import futures
 import time
 import newspaper
 import json
+from newspaper.source import Source
 import schedule
 import uuid
 from opensearchpy import OpenSearch
@@ -12,7 +13,6 @@ import sys
 sys.path.append("./generated")
 
 import grpc
-import generated.Base_pb2 as BaseMessages
 import generated.AggregateMessages_pb2 as AggregateMessages
 import generated.AggregateService_pb2 as AggregateService_pb2
 import generated.AggregateService_pb2_grpc as AggregateService_pb2_grpc
@@ -27,12 +27,14 @@ nltk.download("punkt_tab")
 from dotenv import load_dotenv
 load_dotenv()
 
-index = "articles"
+index = "articles-nlp"
 opensearchHost = "opensearch"
 opensearchPort = 9200
 opensearchAuth = ('admin', os.getenv("OPENSEARCH_INITIAL_ADMIN_PASSWORD"))
 
 opensearch = None
+
+model_id = ""
 
 class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
     def requestAggregate(self, request, context):
@@ -48,14 +50,163 @@ class AggregateService(AggregateService_pb2_grpc.AggregateServiceServicer):
                 processedText=result["content"],
             )
 
+def deploy_model(model_id):
+    logging.info("Deploying ML model...")
+    try:
+        model_deploy_result = opensearch.plugins.ml.deploy_model(model_id)
+        model_deploy_status = model_deploy_result["status"]
+        model_deploy_task_id = model_deploy_result["task_id"]
+        logging.error(json.dumps(model_deploy_result))
+        while model_deploy_status != "COMPLETED" and model_deploy_status != "FAILED":
+            res = opensearch.plugins.ml.get_task(model_deploy_task_id)
+            logging.error(json.dumps(res))
+            model_deploy_status = res["state"]
+    except Exception as e:
+        logging.info(e)
+
+def init_opensearch_model():
+    global model_id
+    model_id = ""
+    
+    logging.info("Preparing ML settings for OpenSearch...")
+    opensearch.cluster.put_settings(
+        body={
+            "persistent": {
+                "plugins.ml_commons.only_run_on_ml_node": "false",
+                "plugins.ml_commons.model_access_control_enabled": "true",
+                "plugins.ml_commons.native_memory_threshold": "99"
+            }
+        }
+    )
+    logging.info("Registering model group...")
+    model_group_result = opensearch.plugins.ml.register_model_group(
+        body={
+            "name": str(uuid.uuid4()),
+            "description": "A model group for NLP models",
+        }
+    )
+    model_group_id = model_group_result["model_group_id"]
+    logging.info("Registering ML model...")
+    model_register_result = opensearch.plugins.ml.register_model(
+        body={
+            "name": "huggingface/sentence-transformers/msmarco-distilbert-base-tas-b",
+            "version": "1.0.1",
+            "model_group_id": model_group_id,
+            "model_format": "TORCH_SCRIPT"
+        }
+    )
+
+    #Wait for task to complete
+    model_register_task_id = model_register_result["task_id"]
+    model_register_status = model_register_result["status"]
+    while model_register_status != "COMPLETED":
+        logging.info("...")
+        res = opensearch.plugins.ml.get_task(model_register_task_id)
+        logging.info(res)
+        model_register_status = res["state"]
+        if model_register_status == "COMPLETED":
+            model_id=res["model_id"]
+            break
+        time.sleep(3)
+
+    logging.info("Saving registered model id to model.info...")
+    with open("model.info", "x") as f:
+        f.write(model_id)
+        f.close()
+    return model_id
+
 def init_opensearch():
+    logging.info("Initializing OpenSearch...")
     global opensearch
+    global model_id
     if opensearch is None:
         opensearch = OpenSearch(
             hosts = [{'host': opensearchHost, 'port': opensearchPort}],
             http_compress = True, # enables gzip compression for request bodies
             http_auth = opensearchAuth,
         )
+    
+
+    try:
+        with open('model.info', 'r') as f:
+            model_id = f.read()
+            f.close()
+    except Exception as e:
+        logging.info("No model.info found.")
+
+    if (model_id == ""):
+        model_id = init_opensearch_model()
+    
+    deploy_model(model_id)
+
+    logging.info("Creating or updating ingestion pipeline...")
+    opensearch.ingest.put_pipeline(
+        id="articles-pipeline",
+        body={
+            "description": "An NLP ingest pipeline",
+            "processors": [
+                {
+                    "text_embedding": {
+                        "model_id": model_id,
+                        "field_map": {
+                            "content": "content_embedding",
+                            "title": "title_embedding",
+                        }
+                    }
+                }
+            ]
+        }
+    )
+
+    try:
+        res = opensearch.indices.get(index)
+        logging.info(res)
+    except:
+        logging.info("Creating articles index...")
+        opensearch.indices.create(index, body={
+            "settings": {
+                "index": {
+                    "knn": True,
+                    "number_of_shards": 2,
+                    "number_of_replicas": 1,
+                },
+                "default_pipeline": "articles-pipeline"
+            },
+            "mappings": {
+                "properties": {
+                    "content": { "type": "text" },
+                    "title": { "type": "text" },
+                    "tags": { "type": "keyword" },
+                    "keywords": { "type": "keyword"},
+                    "date": { "type": "date" },
+
+                    "content_embedding": {
+                        "type": "knn_vector",
+                        "dimension": 768,
+                        "method": {
+                            "engine": "lucene",
+                            "space_type": "l2",
+                            "name": "hnsw",
+                            "parameters": {}
+                        }
+                    },
+                    "title_embedding": {
+                        "type": "knn_vector",
+                        "dimension": 768,
+                        "method": {
+                            "engine": "lucene",
+                            "space_type": "l2",
+                            "name": "hnsw",
+                            "parameters": {}
+                        }
+                    },
+                }
+            },
+            "aliases": {
+                "articles-alias": {}
+            }
+        })
+    logging.info("Done!")
     return opensearch
 
 def cache_query_results(query, opensearch, cache_index="articles_cache"):
@@ -109,28 +260,47 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
 
     # If not cached, query the articles index
     logging.info("Cache miss - querying articles index.")
+    global model_id
     search_arr = []
-    search_arr.append({"index": "articles"})
+    search_arr.append({"index": index})
     search_arr.append({
-        "query": {
-            "multi_match": {
-                "query": query,
-                "fields": ["text", "title", "tags", "keywords"]
-            }
-        }
     })
 
     try:
-        res = opensearch.msearch(body=search_arr)
+        res = opensearch.search(index=index, body={
+            "query": {
+                "neural": {
+                    "content_embedding": {
+                        "query_text": query,
+                        "model_id": model_id,
+                        "k": 5,
+                        "filter": {
+                            "bool": {
+                                "must": [
+                                    {
+                                        "match": {
+                                            "lang": "en"
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                }
+            }
+        },
+        params = {
+            "timeout": 40
+        })
         results = []
-        for result in res['responses']:
-            for hit in result['hits']['hits']:
-                results.append({
-                    "title": hit['_source']['title'],
-                    "content": hit['_source']['text'],
-                    "tags": hit['_source']['tags'],
-                    "keywords": hit['_source']['keywords']
-                })
+        logging.info("RESULT " + json.dumps(res))
+        for hit in res['hits']['hits']:
+            results.append({
+                "title": hit['_source']['title'],
+                "content": hit['_source']['content'],
+                "tags": hit['_source']['tags'],
+                "keywords": hit['_source']['keywords'],
+            })
 
         # Store results in cache
         try:
@@ -149,11 +319,10 @@ def cache_query_results(query, opensearch, cache_index="articles_cache"):
 
 
 def store_article_data(articles):
-    ret = opensearch.bulk(body=articles)
+    ret = opensearch.bulk(body=articles, timeout=30)
     if ret["errors"]:
         logging.error("There were errors.")
-        for error in ret["errors"]:
-            logging.error(f"{error['index']['status']}: {error['index']['error']['type']}")
+        logging.error(ret)
     else:
         logging.error(f"Bulk inserted {len(ret['items'])} items.")
 
@@ -161,31 +330,9 @@ def store_article_data(articles):
 def query_articles():
     logging.info("Fetching articles...")
 
-    try:
-        ret = opensearch.indices.get("articles")
-        if not ret:
-            raise Exception("no response")
-    except:
-        opensearch.indices.create(index, body={
-            "settings": {
-                "index": {
-                    "number_of_shards": 2,
-                    "number_of_replicas": 1
-                }
-            },
-            "mappings": {
-                "properties": {
-                    "title": { "type": "text" },
-                    "text": { "type": "text" },
-                    "tags": { "type": "keyword" },
-                    "keywords": { "type": "keyword"},
-                    "date": { "type": "date" }
-                }
-            },
-            "aliases": {
-                "articles-alias": {}
-            }
-        })
+    ret = opensearch.indices.get(index)
+    if not ret:
+        raise Exception("no response")
 
     with open('sources.json', 'r') as file:
         data = json.load(file)
@@ -195,15 +342,39 @@ def query_articles():
         for source in data["sources"]:
             logging.info(source["name"])
             papers = []
-            papers.append(newspaper.build(source["url"], max_keywords=30))
-            fetch_news(papers, threads=4, )
-            for paper in papers:
-                logging.info(f"Parsing {len(paper.articles)} articles...")
-                counter = 0
-                article_data = []
-                for article in paper.articles:
+            papers.append(newspaper.build(source["url"], max_keywords=30, fetch_images=False))
+            logging.error("Fetching news for paper")
+            resultStream = fetch_news(papers, threads=4, )
+            counter = 0
+            article_data = []
+            for article in resultStream:
+                if (isinstance(article, Source)):
+                    for _article in article.articles:
+                        if counter % 10 == 0 and counter != 0:
+                            store_article_data(article_data)
+                            article_data = []
+                        try:
+                            counter += 1
+                            _article.nlp()
+                            article_data.append({
+                                "index": {
+                                    "_index": index,
+                                    "_id": hash(_article.url)
+                                }
+                            })
+                            article_data.append({
+                                "content": _article.text, 
+                                "title": _article.title, 
+                                "tags": _article.tags if _article.tags else [], 
+                                "keywords": _article.keywords if _article.keywords else [],
+                                "date": _article.publish_date,
+                                "lang": _article.meta_lang 
+                            })
+                            logging.info("Parsed " + _article.title)
+                        except Exception as e:
+                            logging.error(e)
+                else:
                     if counter % 10 == 0 and counter != 0:
-                        logging.info(f"{counter}/{len(paper.articles)}")
                         store_article_data(article_data)
                         article_data = []
                     try:
@@ -212,7 +383,6 @@ def query_articles():
                     except Exception as e:
                         logging.error(e)
                     logging.info("Parsed " + article.title)
-
                     article_data.append({
                         "index": {
                             "_index": index, 
@@ -220,18 +390,19 @@ def query_articles():
                         }
                     })
                     article_data.append({
-                        "text": article.text, 
+                        "content": article.text, 
                         "title": article.title, 
                         "tags": article.tags if article.tags else [], 
                         "keywords": article.keywords if article.keywords else [],
-                        "date": article.publish_date 
+                        "date": article.publish_date,
+                        "lang": article.meta_lang 
                     })
             logging.error(f"Done. Inserting {len(article_data)} into OpenSearch...")
             if len(article_data) != 0:
                 store_article_data(article_data)
 
 def start_crawler():
-    #query_articles()
+    query_articles()
     schedule.every().hour.do(query_articles)
     logging.info("Scheduled crawler daemon")
     while True:
@@ -258,10 +429,12 @@ if __name__=="__main__":
         try:
             init_opensearch()
             opensearchInit = True
-        except:
+        except Exception as e:
             logging.error("Failed to connect to OpenSearch. Retrying in 10 seconds...")
+            logging.error(e)
             time.sleep(10)
 
+    logging.info("opensearch init")
     t = threading.Thread(target=start_crawler, daemon=True)
     t.start()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
