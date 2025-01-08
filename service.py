@@ -2,6 +2,7 @@ from concurrent import futures
 import time
 import newspaper
 import json
+from newspaper.source import Source
 import schedule
 import uuid
 from opensearchpy import OpenSearch
@@ -342,14 +343,38 @@ def query_articles():
             logging.info(source["name"])
             papers = []
             papers.append(newspaper.build(source["url"], max_keywords=30, fetch_images=False))
-            fetch_news(papers, threads=4, )
-            for paper in papers:
-                logging.info(f"Parsing {len(paper.articles)} articles...")
-                counter = 0
-                article_data = []
-                for article in paper.articles:
+            logging.error("Fetching news for paper")
+            resultStream = fetch_news(papers, threads=4, )
+            counter = 0
+            article_data = []
+            for article in resultStream:
+                if (isinstance(article, Source)):
+                    for _article in article.articles:
+                        if counter % 10 == 0 and counter != 0:
+                            store_article_data(article_data)
+                            article_data = []
+                        try:
+                            counter += 1
+                            _article.nlp()
+                            article_data.append({
+                                "index": {
+                                    "_index": index,
+                                    "_id": hash(_article.url)
+                                }
+                            })
+                            article_data.append({
+                                "content": _article.text, 
+                                "title": _article.title, 
+                                "tags": _article.tags if _article.tags else [], 
+                                "keywords": _article.keywords if _article.keywords else [],
+                                "date": _article.publish_date,
+                                "lang": _article.meta_lang 
+                            })
+                            logging.info("Parsed " + _article.title)
+                        except Exception as e:
+                            logging.error(e)
+                else:
                     if counter % 10 == 0 and counter != 0:
-                        logging.info(f"{counter}/{len(paper.articles)}")
                         store_article_data(article_data)
                         article_data = []
                     try:
@@ -358,7 +383,6 @@ def query_articles():
                     except Exception as e:
                         logging.error(e)
                     logging.info("Parsed " + article.title)
-
                     article_data.append({
                         "index": {
                             "_index": index, 
