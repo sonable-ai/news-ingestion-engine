@@ -2,6 +2,7 @@ from concurrent import futures
 import time
 import newspaper
 import json
+from newspaper.article import Article
 from newspaper.source import Source
 import schedule
 import uuid
@@ -9,6 +10,7 @@ from opensearchpy import OpenSearch
 import os
 import hashlib
 import sys
+import asyncio
 
 sys.path.append("./generated")
 
@@ -57,10 +59,11 @@ def deploy_model(model_id):
         model_deploy_status = model_deploy_result["status"]
         model_deploy_task_id = model_deploy_result["task_id"]
         logging.error(json.dumps(model_deploy_result))
-        while model_deploy_status != "COMPLETED" and model_deploy_status != "FAILED":
+        while model_deploy_status != "COMPLETED" and model_deploy_status != "FAILED" and model_deploy_status != "COMPLETED_WITH_ERROR":
             res = opensearch.plugins.ml.get_task(model_deploy_task_id)
             logging.error(json.dumps(res))
             model_deploy_status = res["state"]
+            time.sleep(3)
     except Exception as e:
         logging.info(e)
 
@@ -327,7 +330,7 @@ def store_article_data(articles):
         logging.error(f"Bulk inserted {len(ret['items'])} items.")
 
 
-def query_articles():
+async def query_articles():
     logging.info("Fetching articles...")
 
     ret = opensearch.indices.get(index)
@@ -347,7 +350,7 @@ def query_articles():
             resultStream = fetch_news(papers, threads=4, )
             counter = 0
             article_data = []
-            for article in resultStream:
+            async for article in resultStream:
                 if (isinstance(article, Source)):
                     for _article in article.articles:
                         if counter % 10 == 0 and counter != 0:
@@ -373,7 +376,7 @@ def query_articles():
                             logging.info("Parsed " + _article.title)
                         except Exception as e:
                             logging.error(e)
-                else:
+                elif isinstance(article, Article):
                     if counter % 10 == 0 and counter != 0:
                         store_article_data(article_data)
                         article_data = []
@@ -401,9 +404,12 @@ def query_articles():
             if len(article_data) != 0:
                 store_article_data(article_data)
 
+def crawl():
+    asyncio.run(query_articles())
+
 def start_crawler():
-    query_articles()
-    schedule.every().hour.do(query_articles)
+    crawl()
+    schedule.every().hour.do(crawl)
     logging.info("Scheduled crawler daemon")
     while True:
         schedule.run_pending()
